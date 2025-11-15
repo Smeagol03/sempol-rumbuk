@@ -9,6 +9,8 @@ const Produk = () => {
     deliveryMethod: "pickup",
     address: "",
     notes: "",
+    location: null,
+    locationUrl: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -29,8 +31,13 @@ const Produk = () => {
       newErrors.quantity = "Jumlah minimal 1";
     }
 
-    if (formData.deliveryMethod === "cod" && !formData.address.trim()) {
-      newErrors.address = "Alamat harus diisi untuk COD";
+    if (formData.deliveryMethod === "cod") {
+      const hasAddress = !!formData.address.trim();
+      const hasLocation = !!formData.locationUrl.trim();
+      if (!hasAddress && !hasLocation) {
+        newErrors.address = "Isi alamat atau link Google Maps";
+        newErrors.locationUrl = "Isi alamat atau link Google Maps";
+      }
     }
 
     setErrors(newErrors);
@@ -51,6 +58,7 @@ const Produk = () => {
     const total = calculateTotal();
     const deliveryText =
       formData.deliveryMethod === "cod" ? "COD (Rp 5.000)" : "Ambil Sendiri";
+    const locationText = formData.locationUrl ? `\nLokasi: ${formData.locationUrl}` : "";
 
     return `Halo, saya ingin memesan:
 
@@ -62,10 +70,33 @@ const Produk = () => {
 
 *Data Pemesan:*
 Nama: ${formData.name}
-${formData.deliveryMethod === "cod" ? `Alamat: ${formData.address}` : ""}
+${formData.deliveryMethod === "cod" ? `Alamat: ${formData.address}` : ""}${locationText}
 ${formData.notes ? `Catatan: ${formData.notes}` : ""}
 
 Mohon konfirmasi pesanan saya. Terima kasih!`;
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setErrors((prev) => ({ ...prev, locationUrl: "Perangkat tidak mendukung GPS" }));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const url = `https://maps.google.com/?q=${latitude},${longitude}`;
+        setFormData((prev) => ({
+          ...prev,
+          location: { lat: latitude, lng: longitude },
+          locationUrl: url,
+        }));
+        setErrors((prev) => ({ ...prev, locationUrl: "" }));
+      },
+      () => {
+        setErrors((prev) => ({ ...prev, locationUrl: "Gagal mengambil lokasi, izinkan akses GPS" }));
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const handleSubmit = (e) => {
@@ -89,6 +120,8 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
       deliveryMethod: "pickup",
       address: "",
       notes: "",
+      location: null,
+      locationUrl: "",
     });
     setErrors({});
   };
@@ -162,20 +195,6 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
                     />
                   </svg>
                   <span>100% Ayam Segar</span>
-                </div>
-                <div className="flex items-center text-green-600">
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span>Bumbu Rahasia</span>
                 </div>
                 <div className="flex items-center text-green-600">
                   <svg
@@ -293,25 +312,67 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
                 </div>
 
                 {formData.deliveryMethod === "cod" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Alamat Lengkap *
-                    </label>
-                    <textarea
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      rows="3"
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-                        errors.address ? "border-red-500" : "border-gray-300"
-                      }`}
-                      placeholder="Masukkan alamat lengkap untuk pengantaran"
-                    />
-                    {errors.address && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.address}
-                      </p>
-                    )}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Alamat Lengkap
+                      </label>
+                      <textarea
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                          errors.address ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="Masukkan alamat lengkap untuk pengantaran"
+                      />
+                      {errors.address && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.address}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Link Google Maps
+                      </label>
+                      <input
+                        type="url"
+                        name="locationUrl"
+                        value={formData.locationUrl}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                          errors.locationUrl ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="Tempel link lokasi dari Google Maps"
+                      />
+                      {errors.locationUrl && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.locationUrl}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2">
+                        <button
+                          type="button"
+                          onClick={handleGetLocation}
+                          className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
+                        >
+                          Ambil Lokasi Otomatis
+                        </button>
+                        {formData.locationUrl && (
+                          <a
+                            href={formData.locationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                          >
+                            Preview Lokasi
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
