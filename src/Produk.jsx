@@ -137,7 +137,7 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
 
     // Lanjutkan proses submit jika valid
     const message = generateWhatsAppMessage();
-    const whatsappUrl = `https://wa.me/6281547190395?text=${encodeURIComponent(
+    const whatsappUrl = `https://wa.me/6281996224171?text=${encodeURIComponent(
       message
     )}`;
     window.open(whatsappUrl, "_blank");
