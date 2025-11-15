@@ -5,7 +5,7 @@ const Produk = () => {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
-    quantity: 1,
+    quantity: 0,
     deliveryMethod: "pickup",
     address: "",
     notes: "",
@@ -13,6 +13,13 @@ const Produk = () => {
     locationUrl: "",
   });
   const [errors, setErrors] = useState({});
+  const [isLocating, setIsLocating] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "" });
+
+  const showToast = (message) => {
+    setToast({ show: true, message });
+    setTimeout(() => setToast({ show: false, message: "" }), 3000);
+  };
 
   const product = {
     name: "Sempol Ayam",
@@ -27,7 +34,8 @@ const Produk = () => {
       newErrors.name = "Nama harus diisi";
     }
 
-    if (formData.quantity < 1) {
+    const qty = Number(formData.quantity);
+    if (!Number.isFinite(qty) || qty < 1) {
       newErrors.quantity = "Jumlah minimal 1";
     }
 
@@ -45,7 +53,8 @@ const Produk = () => {
   };
 
   const calculateTotal = () => {
-    const basePrice = product.price * formData.quantity;
+    const qty = Number(formData.quantity) || 0;
+    const basePrice = product.price * qty;
     const deliveryFee = formData.deliveryMethod === "cod" ? 5000 : 0;
     return basePrice + deliveryFee;
   };
@@ -58,7 +67,9 @@ const Produk = () => {
     const total = calculateTotal();
     const deliveryText =
       formData.deliveryMethod === "cod" ? "COD (Rp 5.000)" : "Ambil Sendiri";
-    const locationText = formData.locationUrl ? `\nLokasi: ${formData.locationUrl}` : "";
+    const locationText = formData.locationUrl
+      ? `\nLokasi: ${formData.locationUrl}`
+      : "";
 
     return `Halo, saya ingin memesan:
 
@@ -70,15 +81,22 @@ const Produk = () => {
 
 *Data Pemesan:*
 Nama: ${formData.name}
-${formData.deliveryMethod === "cod" ? `Alamat: ${formData.address}` : ""}${locationText}
+${
+  formData.deliveryMethod === "cod" ? `Alamat: ${formData.address}` : ""
+}${locationText}
 ${formData.notes ? `Catatan: ${formData.notes}` : ""}
 
 Mohon konfirmasi pesanan saya. Terima kasih!`;
   };
 
   const handleGetLocation = () => {
+    setIsLocating(true);
     if (!navigator.geolocation) {
-      setErrors((prev) => ({ ...prev, locationUrl: "Perangkat tidak mendukung GPS" }));
+      setErrors((prev) => ({
+        ...prev,
+        locationUrl: "Perangkat tidak mendukung GPS",
+      }));
+      setIsLocating(false);
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -91,9 +109,14 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
           locationUrl: url,
         }));
         setErrors((prev) => ({ ...prev, locationUrl: "" }));
+        setIsLocating(false);
       },
       () => {
-        setErrors((prev) => ({ ...prev, locationUrl: "Gagal mengambil lokasi, izinkan akses GPS" }));
+        setErrors((prev) => ({
+          ...prev,
+          locationUrl: "Gagal mengambil lokasi, izinkan akses GPS",
+        }));
+        setIsLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -102,21 +125,30 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (validateForm()) {
-      const message = generateWhatsAppMessage();
-      const whatsappUrl = `https://wa.me/6281547190395?text=${encodeURIComponent(
-        message
-      )}`;
-      window.open(whatsappUrl, "_blank");
-      setShowModal(false);
-      resetForm();
+    if (!validateForm()) {
+      const firstError = Object.values(errors).find((e) => e);
+      if (firstError) {
+        showToast(firstError);
+      } else {
+        showToast("Mohon lengkapi semua field yang wajib diisi.");
+      }
+      return;
     }
+
+    // Lanjutkan proses submit jika valid
+    const message = generateWhatsAppMessage();
+    const whatsappUrl = `https://wa.me/6281547190395?text=${encodeURIComponent(
+      message
+    )}`;
+    window.open(whatsappUrl, "_blank");
+    setShowModal(false);
+    resetForm();
   };
 
   const resetForm = () => {
     setFormData({
       name: "",
-      quantity: 1,
+      quantity: 0,
       deliveryMethod: "pickup",
       address: "",
       notes: "",
@@ -130,7 +162,12 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "quantity" ? parseInt(value) || 1 : value,
+      [name]:
+        name === "quantity"
+          ? value === ""
+            ? ""
+            : Math.max(0, Number(value))
+          : value,
     }));
 
     // Clear error for this field when user starts typing
@@ -147,6 +184,25 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
       id="produk"
       className="min-h-screen bg-linear-to-br from-orange-50 to-red-50 py-8 px-4"
     >
+      {/* Toast Notifikasi */}
+      {toast.show && (
+        <div className="fixed top-5 right-5 z-50 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast({ show: false, message: "" })}
+            className="ml-2 text-white hover:text-gray-200"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Menu</h1>
@@ -267,7 +323,7 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
                   <input
                     type="number"
                     name="quantity"
-                    min="1"
+                    min="0"
                     value={formData.quantity}
                     onChange={handleInputChange}
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
@@ -344,7 +400,9 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
                         value={formData.locationUrl}
                         onChange={handleInputChange}
                         className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-                          errors.locationUrl ? "border-red-500" : "border-gray-300"
+                          errors.locationUrl
+                            ? "border-red-500"
+                            : "border-gray-300"
                         }`}
                         placeholder="Tempel link lokasi dari Google Maps"
                       />
@@ -357,9 +415,40 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
                         <button
                           type="button"
                           onClick={handleGetLocation}
-                          className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
+                          disabled={isLocating}
+                          className={`px-3 py-2 rounded-md text-white ${
+                            isLocating
+                              ? "bg-blue-400 cursor-not-allowed"
+                              : "bg-blue-500 hover:bg-blue-600"
+                          }`}
                         >
-                          Ambil Lokasi Otomatis
+                          {isLocating ? (
+                            <span className="flex items-center gap-2">
+                              <svg
+                                className="animate-spin h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                ></path>
+                              </svg>
+                              Mengambil...
+                            </span>
+                          ) : (
+                            "Ambil Lokasi Otomatis"
+                          )}
                         </button>
                         {formData.locationUrl && (
                           <a
@@ -395,7 +484,10 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
                     <div className="flex justify-between">
                       <span>Harga ({formData.quantity} porsi):</span>
                       <span>
-                        Rp {formatNumber(product.price * formData.quantity)}
+                        Rp{" "}
+                        {formatNumber(
+                          product.price * (Number(formData.quantity) || 0)
+                        )}
                       </span>
                     </div>
                     {formData.deliveryMethod === "cod" && (
