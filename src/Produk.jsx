@@ -13,7 +13,7 @@ const Produk = () => {
   const [errors, setErrors] = useState({});
 
   const product = {
-    name: "Ayam Sempol",
+    name: "Sempol Ayam",
     price: 1000,
     image: Gambar,
   };
@@ -73,9 +73,9 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
 
     if (validateForm()) {
       const message = generateWhatsAppMessage();
-      const whatsappUrl = `https://wa.me/6281547190395${formData.name.substring(
-        1
-      )}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/6281547190395?text=${encodeURIComponent(
+        message
+      )}`;
       window.open(whatsappUrl, "_blank");
       setShowModal(false);
       resetForm();
