@@ -1,3 +1,5 @@
+import Logo from "/logo.jpg";
+
 const Navbar = () => {
   return (
     <div className="navbar px-1 md:px-10 bg-base-100 shadow-sm sticky top-0 z-50">
@@ -34,7 +36,7 @@ const Navbar = () => {
         <a className="btn btn-ghost text-xl">SemPol Ayam</a>
       </div>
       <div className="navbar-end">
-        <img src="/chicken.png" alt="" className="h-8" />
+        <img src={Logo} alt="" className="h-8" />
       </div>
     </div>
   );

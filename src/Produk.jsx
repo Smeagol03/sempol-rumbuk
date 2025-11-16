@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Gambar from "/produk.png";
+import Gambar from "/sempol.jpg";
 
 const Produk = () => {
   const [showModal, setShowModal] = useState(false);
@@ -74,7 +74,7 @@ const Produk = () => {
     return `Halo, saya ingin memesan:
 
 *Produk:* ${product.name}
-*Jumlah:* ${formData.quantity} porsi
+*Jumlah:* ${formData.quantity} Biji
 *Harga:* Rp ${formatNumber(product.price * formData.quantity)}
 *Pengambilan:* ${deliveryText}
 *Total:* Rp ${formatNumber(total)}
@@ -232,7 +232,7 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
                 <div className="text-3xl font-bold text-orange-600 mb-6">
                   Rp {formatNumber(product.price)}
                   <span className="text-lg text-gray-500 font-normal">
-                    /porsi
+                    /Biji
                   </span>
                 </div>
               </div>
@@ -318,7 +318,7 @@ Mohon konfirmasi pesanan saya. Terima kasih!`;
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Jumlah Porsi *
+                    Jumlah *
                   </label>
                   <input
                     type="number"
